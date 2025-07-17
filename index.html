@@ -3,174 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Block Breaker</title>
+    <title>Đọc sách - Công chúa ngủ trong rừng</title>
 </head>
-<body style="margin: 0; overflow: hidden; background: #1a1a1a; display: flex; justify-content: center; align-items: center; flex-direction: column; font-family: Arial, sans-serif;">
-    <canvas id="gameCanvas" width="400" height="600" style="background: #111; border: 2px solid #fff;"></canvas>
-    <div style="color: #fff; text-align: center; margin-top: 10px;">
-        <p id="score">Điểm: 0</p>
-        <p id="lives">Mạng: 3</p>
-        <p id="highScore">Điểm cao: 0</p>
-        <button id="pauseBtn" style="padding: 10px 20px; font-size: 16px; cursor: pointer; background: #333; color: #fff; border: 1px solid #fff;">Tạm dừng</button>
+<body style="margin: 0; background: #fff; font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden;">
+    <div id="bookContainer" style="width: 320px; height: 480px; padding: 10px; overflow-y: auto; background: #fff; color: #000; font-size: 16px; line-height: 1.5; border: 1px solid #ccc;">
+        <div id="bookContent"></div>
+    </div>
+    <div style="width: 320px; display: flex; justify-content: space-between; margin-top: 10px;">
+        <button id="prevPage" style="padding: 8px 15px; font-size: 14px; cursor: pointer; background: #333; color: #fff; border: 1px solid #fff;">Trang trước</button>
+        <span id="pageInfo" style="color: #fff; font-size: 14px; line-height: 36px;">Trang 1</span>
+        <button id="nextPage" style="padding: 8px 15px; font-size: 14px; cursor: pointer; background: #333; color: #fff; border: 1px solid #fff;">Trang sau</button>
+    </div>
+    <div style="width: 320px; display: flex; justify-content: space-between; margin-top: 5px;">
+        <button id="fontSmaller" style="padding: 8px 15px; font-size: 14px; cursor: pointer; background: #333; color: #fff; border: 1px solid #fff;">Chữ nhỏ</button>
+        <button id="toggleTheme" style="padding: 8px 15px; font-size: 14px; cursor: pointer; background: #333; color: #fff; border: 1px solid #fff;">Chế độ tối</button>
+        <button id="fontLarger" style="padding: 8px 15px; font-size: 14px; cursor: pointer; background: #333; color: #fff; border: 1px solid #fff;">Chữ lớn</button>
     </div>
     <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        let paddle = { x: 160, width: 80, height: 10, y: 560 };
-        let ball = { x: 200, y: 540, dx: 2, dy: -2, radius: 5 };
-        let bricks = [];
-        let items = [];
-        let score = 0;
-        let lives = 3;
-        let highScore = localStorage.getItem('highScore') ? parseInt(localStorage.getItem('highScore')) : 0;
-        let isPaused = false;
-        const brickWidth = 50;
-        const brickHeight = 20;
-        const brickRows = 5;
-        const brickCols = 8;
+        const bookContent = [
+            "Ngày xưa, trong một vương quốc xa xôi, có một nàng công chúa xinh đẹp tên là Aurora. Khi nàng ra đời, nhà vua và hoàng hậu tổ chức một bữa tiệc lớn để chào mừng. Họ mời tất cả các bà tiên trong vương quốc đến ban phước lành cho công chúa nhỏ.",
+            "Các bà tiên lần lượt tặng Aurora những món quà kỳ diệu: sắc đẹp, giọng hát hay, và trái tim nhân hậu. Nhưng bất ngờ, một bà tiên độc ác tên Maleficent xuất hiện. Bà ta tức giận vì không được mời, nên đã nguyền rủa: 'Khi Aurora 16 tuổi, nàng sẽ bị đâm bởi một mũi kim và ngủ mãi mãi!'",
+            "May mắn thay, một bà tiên tốt bụng chưa kịp tặng quà. Bà không thể phá bỏ lời nguyền, nhưng có thể làm nhẹ nó. Bà nói: 'Aurora sẽ không chết, mà chỉ ngủ sâu. Nàng sẽ được đánh thức bởi nụ hôn của tình yêu đích thực.'",
+            "Nhà vua ra lệnh đốt hết các xa quay sợi trong vương quốc để bảo vệ Aurora. Nàng được ba bà tiên tốt bụng đưa vào rừng sâu, nuôi nấng dưới cái tên Hoa Hồng để giấu khỏi Maleficent.",
+            "Aurora lớn lên thành một thiếu nữ xinh đẹp và dịu dàng. Nhưng đúng ngày sinh nhật 16 tuổi, nàng bị Maleficent lừa, chạm vào một mũi kim trên xa quay sợi. Lời nguyền ứng nghiệm, Aurora rơi vào giấc ngủ sâu trong lâu đài.",
+            "Cả vương quốc cũng chìm vào giấc ngủ theo Aurora. Gai góc mọc dày đặc quanh lâu đài, ngăn cản mọi người đến gần. Nhiều năm trôi qua, không ai có thể vượt qua được.",
+            "Một ngày nọ, hoàng tử Phillip dũng cảm xuất hiện. Chàng vượt qua rừng gai, đánh bại Maleficent, và tìm thấy Aurora đang ngủ. Chàng hôn nàng, và nụ hôn của tình yêu đích thực đã phá vỡ lời nguyền. Aurora tỉnh dậy, cả vương quốc cũng thức giấc.",
+            "Aurora và Phillip tổ chức đám cưới linh đình. Họ sống hạnh phúc mãi mãi về sau trong vương quốc hòa bình và tràn ngập niềm vui."
+        ];
+        let currentPage = localStorage.getItem('currentPage') ? parseInt(localStorage.getItem('currentPage')) : 0;
+        let fontSize = 16;
+        let isDarkMode = false;
 
-        // Khởi tạo gạch
-        for (let i = 0; i < brickRows; i++) {
-            bricks[i] = [];
-            for (let j = 0; j < brickCols; j++) {
-                bricks[i][j] = { x: j * (brickWidth + 5) + 5, y: i * (brickHeight + 5) + 50, hits: Math.floor(Math.random() * 3) + 1 };
+        function updateContent() {
+            document.getElementById('bookContent').innerHTML = bookContent[currentPage];
+            document.getElementById('bookContent').style.fontSize = `${fontSize}px`;
+            document.getElementById('pageInfo').textContent = `Trang ${currentPage + 1}/${bookContent.length}`;
+            document.getElementById('bookContainer').style.background = isDarkMode ? '#222' : '#fff';
+            document.getElementById('bookContainer').style.color = isDarkMode ? '#fff' : '#000';
+            localStorage.setItem('currentPage', currentPage);
+        }
+
+        document.getElementById('prevPage').addEventListener('click', () => {
+            if (currentPage > 0) {
+                currentPage--;
+                updateContent();
             }
-        }
-
-        // Vẽ cảnh
-        function drawScene() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            // Vẽ thanh chắn
-            ctx.fillStyle = '#ff0000';
-            ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
-            // Vẽ bóng
-            ctx.fillStyle = '#ffff00';
-            ctx.beginPath();
-            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-            ctx.fill();
-            // Vẽ gạch
-            bricks.forEach(row => {
-                row.forEach(brick => {
-                    if (brick.hits > 0) {
-                        ctx.fillStyle = brick.hits === 1 ? '#00ff00' : brick.hits === 2 ? '#ffa500' : '#ff0000';
-                        ctx.fillRect(brick.x, brick.y, brickWidth, brickHeight);
-                    }
-                });
-            });
-            // Vẽ vật phẩm
-            items.forEach(item => {
-                ctx.fillStyle = item.type === 'paddle' ? '#00b7eb' : '#ffd700';
-                ctx.fillRect(item.x, item.y, 20, 10);
-            });
-        }
-
-        // Cập nhật giao diện
-        function updateUI() {
-            document.getElementById('score').textContent = `Điểm: ${score}`;
-            document.getElementById('lives').textContent = `Mạng: ${lives}`;
-            document.getElementById('highScore').textContent = `Điểm cao: ${highScore}`;
-        }
-
-        // Điều khiển cảm ứng
-        canvas.addEventListener('touchstart', (e) => {
-            if (isPaused) return;
-            const touch = e.touches[0];
-            const rect = canvas.getBoundingClientRect();
-            paddle.x = touch.clientX - rect.left - paddle.width / 2;
-            paddle.x = Math.max(0, Math.min(canvas.width - paddle.width, paddle.x));
-        });
-        canvas.addEventListener('touchmove', (e) => {
-            if (isPaused) return;
-            const touch = e.touches[0];
-            const rect = canvas.getBoundingClientRect();
-            paddle.x = touch.clientX - rect.left - paddle.width / 2;
-            paddle.x = Math.max(0, Math.min(canvas.width - paddle.width, paddle.x));
         });
 
-        // Tạm dừng/tiếp tục
-        document.getElementById('pauseBtn').addEventListener('click', () => {
-            isPaused = !isPaused;
-            document.getElementById('pauseBtn').textContent = isPaused ? 'Tiếp tục' : 'Tạm dừng';
+        document.getElementById('nextPage').addEventListener('click', () => {
+            if (currentPage < bookContent.length - 1) {
+                currentPage++;
+                updateContent();
+            }
         });
 
-        // Cập nhật trạng thái trò chơi
-        function updateGame() {
-            if (isPaused) return;
-
-            // Di chuyển bóng
-            ball.x += ball.dx;
-            ball.y += ball.dy;
-
-            // Va chạm với tường
-            if (ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0) ball.dx = -ball.dx;
-            if (ball.y - ball.radius < 0) ball.dy = -ball.dy;
-            if (ball.y + ball.radius > canvas.height) {
-                lives--;
-                if (lives <= 0) {
-                    if (score > highScore) {
-                        highScore = score;
-                        localStorage.setItem('highScore', highScore);
-                    }
-                    lives = 3;
-                    score = 0;
-                    ball = { x: 200, y: 540, dx: 2, dy: -2, radius: 5 };
-                    paddle = { x: 160, width: 80, height: 10, y: 560 };
-                    bricks = [];
-                    for (let i = 0; i < brickRows; i++) {
-                        bricks[i] = [];
-                        for (let j = 0; j < brickCols; j++) {
-                            bricks[i][j] = { x: j * (brickWidth + 5) + 5, y: i * (brickHeight + 5) + 50, hits: Math.floor(Math.random() * 3) + 1 };
-                        }
-                    }
-                    items = [];
-                } else {
-                    ball = { x: 200, y: 540, dx: 2, dy: -2, radius: 5 };
-                }
+        document.getElementById('fontSmaller').addEventListener('click', () => {
+            if (fontSize > 12) {
+                fontSize -= 2;
+                updateContent();
             }
+        });
 
-            // Va chạm với thanh chắn
-            if (ball.y + ball.radius > paddle.y && ball.y - ball.radius < paddle.y + paddle.height && ball.x > paddle.x && ball.x < paddle.x + paddle.width) {
-                ball.dy = -ball.dy;
-                ball.dx += (ball.x - (paddle.x + paddle.width / 2)) * 0.1;
+        document.getElementById('fontLarger').addEventListener('click', () => {
+            if (fontSize < 24) {
+                fontSize += 2;
+                updateContent();
             }
+        });
 
-            // Va chạm với gạch
-            bricks.forEach((row, i) => {
-                row.forEach((brick, j) => {
-                    if (brick.hits > 0 && ball.x > brick.x && ball.x < brick.x + brickWidth && ball.y > brick.y && ball.y < brick.y + brickHeight) {
-                        brick.hits--;
-                        score += brick.hits === 0 ? 10 : 5;
-                        ball.dy = -ball.dy;
-                        if (brick.hits === 0 && Math.random() < 0.2) {
-                            let type = Math.random() < 0.5 ? 'paddle' : 'speed';
-                            items.push({ x: brick.x + brickWidth / 2, y: brick.y, type });
-                        }
-                    }
-                });
-            });
+        document.getElementById('toggleTheme').addEventListener('click', () => {
+            isDarkMode = !isDarkMode;
+            document.getElementById('toggleTheme').textContent = isDarkMode ? 'Chế độ sáng' : 'Chế độ tối';
+            document.body.style.background = isDarkMode ? '#000' : '#1a1a1a';
+            updateContent();
+        });
 
-            // Cập nhật vật phẩm
-            items.forEach((item, index) => {
-                item.y += 2;
-                if (item.y > canvas.height) items.splice(index, 1);
-                if (item.y + 10 > paddle.y && item.y < paddle.y + paddle.height && item.x > paddle.x && item.x < paddle.x + paddle.width) {
-                    if (item.type === 'paddle') paddle.width = Math.min(120, paddle.width + 20);
-                    else if (item.type === 'speed') {
-                        ball.dx *= 1.2;
-                        ball.dy *= 1.2;
-                    }
-                    items.splice(index, 1);
-                }
-            });
-
-            drawScene();
-            updateUI();
-        }
-
-        // Vòng lặp trò chơi
-        setInterval(updateGame, 1000 / 60);
-        drawScene();
-        updateUI();
+        updateContent();
     </script>
 </body>
 </html>
