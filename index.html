@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Battle</title>
+</head>
+<body style="margin: 0; overflow: hidden; background: #000; display: flex; justify-content: center; align-items: center; flex-direction: column; font-family: Arial, sans-serif;">
+    <canvas id="gameCanvas" width="400" height="600" style="background: #111; border: 2px solid #fff;"></canvas>
+    <div style="color: #fff; text-align: center; margin-top: 10px;">
+        <p id="score">Điểm: 0</p>
+        <p id="health">Máu: 100</p>
+        <p id="energy">Năng lượng: 100</p>
+        <p id="upgrades">Nâng cấp: Không</p>
+        <p id="highScore">Điểm cao: 0</p>
+        <button id="pauseBtn" style="padding: 10px 20px; font-size: 16px; cursor: pointer; background: #333; color: #fff; border: 1px solid #fff;">Tạm dừng</button>
+    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let player = { x: 200, y: 500, health: 100, energy: 100, fireRate: 500, shield: 0, speed: 3 };
+        let score = 0;
+        let highScore = localStorage.getItem('highScore') ? parseInt(localStorage.getItem('highScore')) : 0;
+        let isPaused = false;
+        let enemies = [];
+        let bullets = [];
+        let enemyBullets = [];
+        let upgrades = [];
+        let lastShot = Date.now();
+
+        // Vẽ cảnh
+        function drawScene() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Vẽ tàu người chơi
+            ctx.fillStyle = player.shield > 0 ? '#00ffff' : '#ff0000';
+            ctx.beginPath();
+            ctx.moveTo(player.x, player.y - 15);
+            ctx.lineTo(player.x - 15, player.y + 15);
+            ctx.lineTo(player.x + 15, player.y + 15);
+            ctx.closePath();
+            ctx.fill();
+            // Vẽ kẻ thù
+            enemies.forEach(e => {
+                ctx.fillStyle = '#00ff00';
+                ctx.fillRect(e.x - 15, e.y - 15, 30, 30);
+            });
+            // Vẽ đạn
+            bullets.forEach(b => {
+                ctx.fillStyle = '#ffff00';
+                ctx.fillRect(b.x - 2, b.y - 5, 4, 10);
+            });
+            enemyBullets.forEach(b => {
+                ctx.fillStyle = '#ff4500';
+                ctx.fillRect(b.x - 2, b.y - 5, 4, 10);
+            });
+            // Vẽ vật phẩm nâng cấp
+            upgrades.forEach(u => {
+                ctx.fillStyle = u.type === 'health' ? '#ff4040' : u.type === 'energy' ? '#1e90ff' : '#ffd700';
+                ctx.beginPath();
+                ctx.arc(u.x, u.y, 10, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        // Cập nhật giao diện
+        function updateUI() {
+            document.getElementById('score').textContent = `Điểm: ${Math.floor(score)}`;
+            document.getElementById('health').textContent = `Máu: ${Math.floor(player.health)}`;
+            document.getElementById('energy').textContent = `Năng lượng: ${Math.floor(player.energy)}`;
+            document.getElementById('upgrades').textContent = `Nâng cấp: ${player.shield > 0 ? 'Lá chắn' : player.fireRate < 500 ? 'Tốc độ bắn' : 'Không'}`;
+            document.getElementById('highScore').textContent = `Điểm cao: ${highScore}`;
+        }
+
+        // Điều khiển cảm ứng
+        let isDragging = false;
+        canvas.addEventListener('touchstart', (e) => {
+            if (isPaused) return;
+            isDragging = true;
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            player.x = touch.clientX - rect.left;
+            player.y = touch.clientY - rect.top;
+            player.x = Math.max(15, Math.min(canvas.width - 15, player.x));
+            player.y = Math.max(15, Math.min(canvas.height - 15, player.y));
+            if (Date.now() - lastShot >= player.fireRate && player.energy >= 5) {
+                bullets.push({ x: player.x, y: player.y - 15 });
+                player.energy -= 5;
+                lastShot = Date.now();
+            }
+        });
+        canvas.addEventListener('touchmove', (e) => {
+            if (isPaused || !isDragging) return;
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            player.x = touch.clientX - rect.left;
+            player.y = touch.clientY - rect.top;
+            player.x = Math.max(15, Math.min(canvas.width - 15, player.x));
+            player.y = Math.max(15, Math.min(canvas.height - 15, player.y));
+        });
+        canvas.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+
+        // Tạm dừng/tiếp tục
+        document.getElementById('pauseBtn').addEventListener('click', () => {
+            isPaused = !isPaused;
+            document.getElementById('pauseBtn').textContent = isPaused ? 'Tiếp tục' : 'Tạm dừng';
+        });
+
+        // Cập nhật trạng thái trò chơi
+        function updateGame() {
+            if (isPaused) return;
+            score += 0.1;
+            player.energy = Math.min(100, player.energy + 0.05);
+            player.shield = Math.max(0, player.shield - 0.02);
+
+            // Tạo kẻ thù
+            if (Math.random() < 0.03) {
+                let type = Math.random() < 0.5 ? 'straight' : 'zigzag';
+                enemies.push({ x: Math.random() * (canvas.width - 30) + 15, y: -15, type, health: 50, zigzagDir: 1, zigzagTime: 0 });
+            }
+
+            // Cập nhật kẻ thù
+            enemies.forEach((e, index) => {
+                if (e.type === 'straight') e.y += 2;
+                else {
+                    e.y += 1;
+                    e.zigzagTime += 0.1;
+                    e.x += Math.sin(e.zigzagTime) * e.zigzagDir * 2;
+                }
+                if (e.y > canvas.height) enemies.splice(index, 1);
+                if (Math.hypot(e.x - player.x, e.y - player.y) < 30) {
+                    player.health -= player.shield > 0 ? 0 : 20;
+                    enemies.splice(index, 1);
+                }
+                if (Math.random() < 0.01) {
+                    enemyBullets.push({ x: e.x, y: e.y + 15 });
+                }
+            });
+
+            // Cập nhật đạn
+            bullets.forEach((b, index) => {
+                b.y -= 5;
+                if (b.y < 0) bullets.splice(index, 1);
+                enemies.forEach((e, eIndex) => {
+                    if (Math.hypot(b.x - e.x, b.y - e.y) < 20) {
+                        e.health -= 25;
+                        bullets.splice(index, 1);
+                        if (e.health <= 0) {
+                            enemies.splice(eIndex, 1);
+                            score += 10;
+                            if (Math.random() < 0.3) {
+                                let type = Math.random() < 0.33 ? 'health' : Math.random() < 0.5 ? 'energy' : 'shield';
+                                upgrades.push({ x: e.x, y: e.y, type });
+                            }
+                        }
+                    }
+                });
+            });
+
+            // Cập nhật đạn kẻ thù
+            enemyBullets.forEach((b, index) => {
+                b.y += 3;
+                if (b.y > canvas.height) enemyBullets.splice(index, 1);
+                if (Math.hypot(b.x - player.x, b.y - player.y) < 20) {
+                    player.health -= player.shield > 0 ? 0 : 15;
+                    enemyBullets.splice(index, 1);
+                }
+            });
+
+            // Cập nhật vật phẩm nâng cấp
+            upgrades.forEach((u, index) => {
+                u.y += 1;
+                if (u.y > canvas.height) upgrades.splice(index, 1);
+                if (Math.hypot(u.x - player.x, u.y - player.y) < 20) {
+                    if (u.type === 'health') player.health = Math.min(100, player.health + 20);
+                    else if (u.type === 'energy') player.energy = Math.min(100, player.energy + 30);
+                    else if (u.type === 'shield') {
+                        player.shield = 100;
+                        player.fireRate = Math.max(200, player.fireRate - 50);
+                    }
+                    upgrades.splice(index, 1);
+                }
+            });
+
+            // Kiểm tra game over
+            if (player.health <= 0) {
+                if (score > highScore) {
+                    highScore = Math.floor(score);
+                    localStorage.setItem('highScore', highScore);
+                }
+                player = { x: 200, y: 500, health: 100, energy: 100, fireRate: 500, shield: 0, speed: 3 };
+                score = 0;
+                enemies = [];
+                bullets = [];
+                enemyBullets = [];
+                upgrades = [];
+            }
+
+            drawScene();
+            updateUI();
+        }
+
+        // Vòng lặp trò chơi
+        setInterval(updateGame, 1000 / 60);
+        drawScene();
+        updateUI();
+    </script>
+</body>
+</html>
